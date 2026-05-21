@@ -1,4 +1,4 @@
-﻿export interface ApiResponse<T> {
+export interface ApiResponse<T> {
   status: string
   message: string
   data?: T
@@ -97,6 +97,13 @@ export interface SimInfo {
   sms_center: string
   mcc: string
   mnc: string
+  phone_number_is_manual?: boolean
+  sms_center_is_manual?: boolean
+}
+
+export interface UpdateSimCacheRequest {
+  phone_number?: string
+  sms_center?: string
 }
 
 export interface NetworkInfo {

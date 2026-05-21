@@ -432,6 +432,10 @@ async fn main() -> Result<()> {
         .route("/api/device", get(get_device_info).options(options_handler))
         // ========== SIM 卡接口 ==========
         .route("/api/sim", get(get_sim_info).options(options_handler))
+        .route(
+            "/api/sim/cache",
+            post(update_sim_cache_handler).options(options_handler),
+        )
         // ========== 网络接口 ==========
         .route(
             "/api/network",

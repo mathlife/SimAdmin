@@ -14,6 +14,9 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  TextField,
+  Snackbar,
+  Alert,
 } from '@mui/material'
 import Grid from '@mui/material/Grid'
 import {
@@ -22,6 +25,9 @@ import {
   SimCard,
   Visibility,
   VisibilityOff,
+  Edit,
+  Check,
+  Close,
 } from '@mui/icons-material'
 import { api } from '../api/current'
 import ErrorSnackbar from '../components/ErrorSnackbar'
@@ -43,27 +49,93 @@ export default function DeviceInfoPage() {
   const [showSimInfo, setShowSimInfo] = useState(false)
   const [deviceInfo, setDeviceInfo] = useState<DeviceInfo | null>(null)
   const [simInfo, setSimInfo] = useState<SimInfo | null>(null)
+  
+  const [editingPhone, setEditingPhone] = useState(false)
+  const [editingSmsc, setEditingSmsc] = useState(false)
+  const [phoneInput, setPhoneInput] = useState('')
+  const [smscInput, setSmscInput] = useState('')
+  const [savingPhone, setSavingPhone] = useState(false)
+  const [savingSmsc, setSavingSmsc] = useState(false)
+
+  const isPhoneEmpty = !simInfo?.phone_numbers?.length
+  const isSmscEmpty = !simInfo?.sms_center
+  
+  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
+    open: false,
+    message: '',
+    severity: 'success',
+  })
+
+  const showMsg = (message: string, severity: 'success' | 'error') => {
+    setSnackbar({ open: true, message, severity })
+  }
+
+  const validatePhoneStr = (val: string) => /^\+?\d+$/.test(val.trim())
+
+  const loadData = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      const [deviceRes, simRes] = await Promise.all([
+        api.getDeviceInfo(),
+        api.getSimInfo(),
+      ])
+
+      if (deviceRes.data) setDeviceInfo(deviceRes.data)
+      if (simRes.data) setSimInfo(simRes.data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleSavePhone = async () => {
+    if (!phoneInput.trim()) {
+      setEditingPhone(false)
+      return
+    }
+    if (!validatePhoneStr(phoneInput)) {
+      showMsg('号码格式错误，只能包含数字和开头的+', 'error')
+      return
+    }
+    setSavingPhone(true)
+    try {
+      await api.updateSimCache({ phone_number: phoneInput.trim() })
+      showMsg('号码缓存已更新', 'success')
+      setEditingPhone(false)
+      void loadData()
+    } catch (err) {
+      showMsg(err instanceof Error ? err.message : String(err), 'error')
+    } finally {
+      setSavingPhone(false)
+    }
+  }
+
+  const handleSaveSmsc = async () => {
+    if (!smscInput.trim()) {
+      setEditingSmsc(false)
+      return
+    }
+    if (!validatePhoneStr(smscInput)) {
+      showMsg('号码格式错误，只能包含数字和开头的+', 'error')
+      return
+    }
+    setSavingSmsc(true)
+    try {
+      await api.updateSimCache({ sms_center: smscInput.trim() })
+      showMsg('短信中心缓存已更新', 'success')
+      setEditingSmsc(false)
+      void loadData()
+    } catch (err) {
+      showMsg(err instanceof Error ? err.message : String(err), 'error')
+    } finally {
+      setSavingSmsc(false)
+    }
+  }
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const [deviceRes, simRes] = await Promise.all([
-          api.getDeviceInfo(),
-          api.getSimInfo(),
-        ])
-
-        if (deviceRes.data) setDeviceInfo(deviceRes.data)
-        if (simRes.data) setSimInfo(simRes.data)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
-      } finally {
-        setLoading(false)
-      }
-    }
-
     void loadData()
   }, [])
 
@@ -173,8 +245,37 @@ export default function DeviceInfoPage() {
                     </TableRow>
                     <TableRow>
                       <TableCell component="th">手机号</TableCell>
-                      <TableCell sx={{ fontFamily: 'monospace', ...getSensitiveStyle(showSimInfo) }}>
-                        {simInfo?.phone_numbers?.join(', ') || 'N/A'}
+                      <TableCell>
+                        {editingPhone ? (
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <TextField
+                              size="small"
+                              variant="standard"
+                              placeholder="+86..."
+                              value={phoneInput}
+                              onChange={(e) => setPhoneInput(e.target.value)}
+                              disabled={savingPhone}
+                              inputProps={{ style: { fontFamily: 'monospace' } }}
+                            />
+                            <IconButton size="small" color="success" onClick={() => void handleSavePhone()} disabled={savingPhone}>
+                              {savingPhone ? <CircularProgress size={16} /> : <Check fontSize="small" />}
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => setEditingPhone(false)} disabled={savingPhone}>
+                              <Close fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        ) : (
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <Box sx={{ fontFamily: 'monospace', ...getSensitiveStyle(showSimInfo) }}>
+                              {simInfo?.phone_numbers?.length ? simInfo.phone_numbers.join(', ') : 'N/A'}
+                            </Box>
+                            {(isPhoneEmpty || simInfo?.phone_number_is_manual) && simInfo?.present && (
+                              <IconButton size="small" onClick={() => { setPhoneInput(simInfo?.phone_numbers?.[0] || ''); setEditingPhone(true); }}>
+                                <Edit sx={{ fontSize: '1rem' }} />
+                              </IconButton>
+                            )}
+                          </Box>
+                        )}
                       </TableCell>
                     </TableRow>
                     <TableRow>
@@ -185,8 +286,37 @@ export default function DeviceInfoPage() {
                     </TableRow>
                     <TableRow>
                       <TableCell component="th">短信中心号码</TableCell>
-                      <TableCell sx={{ fontFamily: 'monospace', ...getSensitiveStyle(showSimInfo) }}>
-                        {simInfo?.sms_center || '未读取到'}
+                      <TableCell>
+                        {editingSmsc ? (
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <TextField
+                              size="small"
+                              variant="standard"
+                              placeholder="+86..."
+                              value={smscInput}
+                              onChange={(e) => setSmscInput(e.target.value)}
+                              disabled={savingSmsc}
+                              inputProps={{ style: { fontFamily: 'monospace' } }}
+                            />
+                            <IconButton size="small" color="success" onClick={() => void handleSaveSmsc()} disabled={savingSmsc}>
+                              {savingSmsc ? <CircularProgress size={16} /> : <Check fontSize="small" />}
+                            </IconButton>
+                            <IconButton size="small" color="error" onClick={() => setEditingSmsc(false)} disabled={savingSmsc}>
+                              <Close fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        ) : (
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <Box sx={{ fontFamily: 'monospace', ...getSensitiveStyle(showSimInfo) }}>
+                              {simInfo?.sms_center || '未读取到'}
+                            </Box>
+                            {(isSmscEmpty || simInfo?.sms_center_is_manual) && simInfo?.present && (
+                              <IconButton size="small" onClick={() => { setSmscInput(simInfo?.sms_center || ''); setEditingSmsc(true); }}>
+                                <Edit sx={{ fontSize: '1rem' }} />
+                              </IconButton>
+                            )}
+                          </Box>
+                        )}
                       </TableCell>
                     </TableRow>
                   </TableBody>
@@ -257,6 +387,17 @@ export default function DeviceInfoPage() {
           </Card>
         </Grid>
       </Grid>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   )
 }

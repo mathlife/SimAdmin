@@ -587,6 +587,52 @@ pub async fn get_sim_info(
     }
 }
 
+/// POST /api/sim/cache
+pub async fn update_sim_cache_handler(
+    State(app): State<AppState>,
+    Json(payload): Json<UpdateSimCacheRequest>,
+) -> impl IntoResponse {
+    let identity = match tokio::time::timeout(
+        std::time::Duration::from_secs(ESIM_SIM_IDENTITY_TIMEOUT_SECS),
+        current_sim_identity(&app.dbus_conn),
+    )
+    .await
+    {
+        Ok(Some(identity)) => identity,
+        _ => {
+            return (
+                StatusCode::SERVICE_UNAVAILABLE,
+                Json(ApiResponse::<serde_json::Value>::error(
+                    "Unable to get current SIM identity",
+                )),
+            );
+        }
+    };
+
+    if let Some(sms_center) = &payload.sms_center {
+        crate::modem_manager::cache_smsc_for_identity(
+            &app.database,
+            &identity,
+            sms_center,
+            "manual",
+        );
+    }
+
+    if let Some(phone_number) = &payload.phone_number {
+        crate::modem_manager::cache_own_numbers_for_identity(
+            &app.database,
+            &identity,
+            &[phone_number.clone()],
+            "manual",
+        );
+    }
+
+    (
+        StatusCode::OK,
+        Json(ApiResponse::success_with_message("SIM cache updated", json!({}))),
+    )
+}
+
 // ============ 网络信息 ============
 
 /// GET /api/network

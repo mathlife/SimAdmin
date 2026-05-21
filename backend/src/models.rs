@@ -280,6 +280,8 @@ pub struct SimInfoResponse {
     pub sms_center: String,
     pub mcc: String,
     pub mnc: String,
+    pub phone_number_is_manual: bool,
+    pub sms_center_is_manual: bool,
 }
 
 #[derive(Debug, Default, Serialize)]
@@ -982,4 +984,10 @@ pub struct OtaValidation {
 pub struct OtaApplyRequest {
     #[serde(default)]
     pub restart_now: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateSimCacheRequest {
+    pub phone_number: Option<String>,
+    pub sms_center: Option<String>,
 }

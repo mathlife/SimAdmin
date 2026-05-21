@@ -45,6 +45,7 @@ import type {
   SetApnRequest,
   SignalStrengthResponse,
   SimInfo,
+  UpdateSimCacheRequest,
   SmsMessage,
   SmsConversationRequest,
   SmsListRequest,
@@ -210,6 +211,13 @@ class SimAdminCurrentAPI {
 
   async getSimInfo() {
     return request<ApiResponse<SimInfo>>('/sim')
+  }
+
+  async updateSimCache(data: UpdateSimCacheRequest) {
+    return request<ApiResponse<void>>('/sim/cache', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
   }
 
   async getNetworkInfo() {

@@ -781,7 +781,7 @@ fn cached_smsc_for_identity(db: &Database, identity: &SimIdentity) -> String {
         .unwrap_or_default()
 }
 
-fn cache_own_numbers_for_identity(
+pub fn cache_own_numbers_for_identity(
     db: &Database,
     identity: &SimIdentity,
     phone_numbers: &[String],
@@ -804,6 +804,7 @@ fn cache_own_numbers_for_identity(
     );
 }
 
+#[allow(dead_code)]
 fn cached_own_numbers_for_identity(db: &Database, identity: &SimIdentity) -> Vec<String> {
     let Some(identity_key) = own_number_identity_key(identity) else {
         return Vec::new();
@@ -1849,6 +1850,9 @@ pub async fn get_sim_info_data_with_cache(
     };
     let (mcc, mnc) = split_operator_code(&operator_id);
 
+    let mut phone_number_is_manual = false;
+    let mut sms_center_is_manual = false;
+
     let mut phone_numbers = extract_own_numbers_property(&sim_props);
     if phone_numbers.is_empty() {
         phone_numbers = extract_own_numbers_property(&modem_props);
@@ -1871,7 +1875,14 @@ pub async fn get_sim_info_data_with_cache(
     }
     if phone_numbers.is_empty() {
         if let Some(db) = db {
-            phone_numbers = cached_own_numbers_for_identity(db, &identity);
+            if let Some(identity_key) = own_number_identity_key(&identity) {
+                if let Ok(Some(entry)) = db.get_own_number_cache(&[identity_key]) {
+                    phone_numbers = normalize_phone_numbers(entry.phone_numbers);
+                    if entry.source == "manual" {
+                        phone_number_is_manual = true;
+                    }
+                }
+            }
         }
     }
     if phone_numbers.is_empty() {
@@ -1904,7 +1915,15 @@ pub async fn get_sim_info_data_with_cache(
     }
     if sms_center.is_empty() {
         if let Some(db) = db {
-            sms_center = cached_smsc_for_identity(db, &identity);
+            let keys = smsc_identity_keys(&identity);
+            if !keys.is_empty() {
+                if let Ok(Some(entry)) = db.get_smsc_cache(&keys) {
+                    sms_center = normalize_smsc(&entry.sms_center);
+                    if entry.source == "manual" {
+                        sms_center_is_manual = true;
+                    }
+                }
+            }
         }
     }
     if sms_center.is_empty() {
@@ -1924,6 +1943,8 @@ pub async fn get_sim_info_data_with_cache(
         sms_center,
         mcc,
         mnc,
+        phone_number_is_manual,
+        sms_center_is_manual,
     })
 }
 

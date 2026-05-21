@@ -185,7 +185,7 @@ export default function DashboardPage() {
           </Grid>
 
           <Grid size={{ xs: 12, md: 6, lg: 3 }}>
-            <SimCardInfo simInfo={data.simInfo} />
+            <SimCardInfo simInfo={data.simInfo} onRefresh={() => void actions.loadData()} />
           </Grid>
 
           <Grid size={{ xs: 12, lg: 6 }}>
