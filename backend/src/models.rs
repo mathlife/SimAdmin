@@ -295,6 +295,23 @@ pub struct SimInfoResponse {
     pub mnc: String,
     pub phone_number_is_manual: bool,
     pub sms_center_is_manual: bool,
+    pub sim_path: String,
+    pub modem_path: String,
+    pub sim_type: String,
+    pub esim_status: String,
+    pub active: bool,
+    pub operator_name: String,
+    pub registered_operator_name: String,
+    pub registered_operator_code: String,
+    pub lock_status: String,
+    pub pin1_retries: Option<u32>,
+    pub puk1_retries: Option<u32>,
+    pub pin2_retries: Option<u32>,
+    pub puk2_retries: Option<u32>,
+    pub carrier_config: String,
+    pub carrier_config_revision: String,
+    pub sms_used: Option<u32>,
+    pub sms_total: Option<u32>,
 }
 
 #[derive(Debug, Default, Serialize)]

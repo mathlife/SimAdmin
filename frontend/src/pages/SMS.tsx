@@ -1120,8 +1120,7 @@ export default function SMSPage() {
   return (
     <Box sx={{ height: 'calc(100vh - 140px)', minHeight: 500 }}>
       <Box display="flex" alignItems="center" gap={1} mb={2}>
-        <SmsIcon color="primary" />
-        <Typography variant="h5" fontWeight={600}>
+        <Typography variant="h5" fontWeight={700}>
           短信管理
         </Typography>
       </Box>

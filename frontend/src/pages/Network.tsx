@@ -187,7 +187,7 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`network-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      {value === index && children}
     </div>
   )
 }
@@ -863,8 +863,8 @@ export default function NetworkPage() {
       </Snackbar>
 
       {/* 页面标题 */}
-      <Box mb={3}>
-        <Typography variant="h4" gutterBottom fontWeight={600}>
+      <Box mb={2}>
+        <Typography variant="h5" gutterBottom fontWeight={700}>
           蜂窝网络
         </Typography>
         <Typography variant="body2" color="text.secondary">

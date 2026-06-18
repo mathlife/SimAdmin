@@ -38,7 +38,7 @@ export function SimCardInfo({ simInfo, onRefresh }: SimCardInfoProps) {
   const [smscInput, setSmscInput] = useState('')
   const [savingPhone, setSavingPhone] = useState(false)
   const [savingSmsc, setSavingSmsc] = useState(false)
-  
+
   const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
     open: false,
     message: '',
@@ -156,20 +156,13 @@ export function SimCardInfo({ simInfo, onRefresh }: SimCardInfoProps) {
                   <Typography variant="body2" sx={{ ...valueTextSx, ...getSensitiveStyle(showInfo) }}>
                     {!isPhoneEmpty ? simInfo.phone_numbers[0] : 'N/A'}
                   </Typography>
-                  {(isPhoneEmpty || simInfo?.phone_number_is_manual) && simInfo?.present && (
+                  {showInfo && (isPhoneEmpty || simInfo?.phone_number_is_manual) && simInfo?.present && (
                     <IconButton size="small" onClick={() => { setPhoneInput(simInfo?.phone_numbers?.[0] || ''); setEditingPhone(true); }}>
                       <Edit sx={{ fontSize: '1rem' }} />
                     </IconButton>
                   )}
                 </Box>
               )}
-            </Box>
-
-            <Box display="flex" justifyContent="space-between" alignItems="center" gap={2}>
-              <Typography variant="caption" color="text.secondary">MCC/MNC</Typography>
-              <Typography variant="body2" sx={valueTextSx}>
-                {simInfo?.mcc || '?'}/{simInfo?.mnc || '?'}
-              </Typography>
             </Box>
 
             <Box display="flex" justifyContent="space-between" alignItems="center" gap={2}>
@@ -197,13 +190,20 @@ export function SimCardInfo({ simInfo, onRefresh }: SimCardInfoProps) {
                   <Typography variant="body2" sx={{ ...valueTextSx, ...getSensitiveStyle(showInfo) }}>
                     {!isSmscEmpty ? simInfo.sms_center : '未读取到'}
                   </Typography>
-                  {(isSmscEmpty || simInfo?.sms_center_is_manual) && simInfo?.present && (
+                  {showInfo && (isSmscEmpty || simInfo?.sms_center_is_manual) && simInfo?.present && (
                     <IconButton size="small" onClick={() => { setSmscInput(simInfo?.sms_center || ''); setEditingSmsc(true); }}>
                       <Edit sx={{ fontSize: '1rem' }} />
                     </IconButton>
                   )}
                 </Box>
               )}
+            </Box>
+
+            <Box display="flex" justifyContent="space-between" alignItems="center" gap={2}>
+              <Typography variant="caption" color="text.secondary">MCC/MNC</Typography>
+              <Typography variant="body2" sx={valueTextSx}>
+                {simInfo?.mcc || '?'}/{simInfo?.mnc || '?'}
+              </Typography>
             </Box>
           </Stack>
         </CardContent>

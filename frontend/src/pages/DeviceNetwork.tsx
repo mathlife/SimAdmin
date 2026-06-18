@@ -90,7 +90,7 @@ interface TabPanelProps {
 function TabPanel({ children, value, index }: TabPanelProps) {
   return (
     <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
+      {value === index && children}
     </div>
   )
 }
@@ -1020,8 +1020,8 @@ export default function DeviceNetworkPage() {
 
   return (
     <Box>
-      <Box mb={3}>
-        <Typography variant="h4" gutterBottom fontWeight={600}>
+      <Box mb={2}>
+        <Typography variant="h5" gutterBottom fontWeight={700}>
           设备网络
         </Typography>
         <Typography variant="body2" color="text.secondary">

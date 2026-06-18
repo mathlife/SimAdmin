@@ -653,9 +653,9 @@ export default function OtaUpdate() {
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
         <Box>
-          <Typography variant="h4" gutterBottom fontWeight={600}>
+          <Typography variant="h5" gutterBottom fontWeight={700}>
             OTA 更新
           </Typography>
           <Typography variant="body2" color="text.secondary">

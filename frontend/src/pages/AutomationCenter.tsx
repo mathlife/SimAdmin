@@ -387,7 +387,6 @@ export default function AutomationCenter() {
       {/* 头部区域 */}
       <Box display="flex" alignItems="center" justifyContent="space-between" mb={2} flexWrap="wrap" gap={2}>
         <Box display="flex" alignItems="center" gap={1.5}>
-          <AutoMode color="primary" sx={{ fontSize: 28 }} />
           <Typography variant="h5" fontWeight={700}>
             自动化中心
           </Typography>

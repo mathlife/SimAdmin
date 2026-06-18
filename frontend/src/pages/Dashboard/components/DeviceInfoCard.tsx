@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Box, Card, CardContent, Typography, IconButton, Tooltip } from '@mui/material'
+import { Box, Card, CardContent, Typography, IconButton, Tooltip, Chip } from '@mui/material'
 import { Router, Visibility, VisibilityOff } from '@mui/icons-material'
 import { getSensitiveStyle } from '../utils'
 import type { DeviceInfo, SystemStatsResponse } from '@/api/types'
@@ -50,6 +50,21 @@ export function DeviceInfoCard({ deviceInfo, systemStats }: DeviceInfoCardProps)
           <Box>
             <Typography variant="caption" color="text.secondary">型号</Typography>
             <Typography variant="body2" fontSize="0.75rem">{deviceInfo?.model || 'N/A'}</Typography>
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary" display="block">电源状态</Typography>
+            <Chip
+              label={deviceInfo?.powered ? '已上电' : '未上电'}
+              color={deviceInfo?.powered ? 'success' : 'default'}
+              size="small"
+              sx={{ height: 20, fontSize: '0.7rem', mt: 0.25 }}
+            />
+          </Box>
+          <Box>
+            <Typography variant="caption" color="text.secondary">基带版本</Typography>
+            <Typography variant="body2" fontSize="0.75rem" noWrap>
+              {deviceInfo?.revision || 'N/A'}
+            </Typography>
           </Box>
           <Box>
             <Typography variant="caption" color="text.secondary">系统</Typography>

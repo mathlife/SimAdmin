@@ -1,4 +1,5 @@
-import { useEffect, useState, type ReactNode, type SyntheticEvent } from 'react'
+import { useEffect, useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import {
   Alert,
@@ -26,8 +27,6 @@ import {
   Snackbar,
   Stack,
   Switch,
-  Tab,
-  Tabs,
   TextField,
   Tooltip,
   Typography,
@@ -108,19 +107,7 @@ const compactCardAlertSx = {
   },
 }
 
-interface TabPanelProps {
-  children?: ReactNode
-  index: number
-  value: number
-}
 
-function TabPanel({ children, value, index }: TabPanelProps) {
-  return (
-    <div role="tabpanel" hidden={value !== index}>
-      {value === index && <Box sx={{ pt: 3 }}>{children}</Box>}
-    </div>
-  )
-}
 
 function modeLabel(mode: WorkMode) {
   return mode === 'esim' ? 'eSIM 卡' : '普通 SIM 卡'
@@ -164,24 +151,12 @@ function validateSecurityConfig(config: SecurityConfig) {
   return null
 }
 
-function ReservedPanel({ title }: { title: string }) {
-  return (
-    <Card>
-      <CardContent sx={{ py: 6, textAlign: 'center' }}>
-        <Typography variant="subtitle1" fontWeight={700}>
-          {title}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" mt={0.5}>
-          暂无配置项
-        </Typography>
-      </CardContent>
-    </Card>
-  )
-}
+
 
 export default function ConfigurationPage() {
   const { mode, refreshWorkMode } = useWorkMode()
-  const [tabValue, setTabValue] = useState(0)
+  const location = useLocation()
+  const isSecurity = location.pathname === '/config/security'
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
@@ -261,7 +236,7 @@ export default function ConfigurationPage() {
     setBottomActionBarHost(document.getElementById(LAYOUT_BOTTOM_ACTION_BAR_ID))
   }, [])
 
-  const handleTabChange = (_event: SyntheticEvent, value: number) => setTabValue(value)
+
 
   const toggleDataConnection = async () => {
     try {
@@ -867,7 +842,7 @@ export default function ConfigurationPage() {
           </Grid>
         </Stack>
 
-        {bottomActionBarHost && securityDirty && createPortal(
+        {isSecurity && bottomActionBarHost && securityDirty && createPortal(
           <Box
             sx={{
               '@keyframes securityActionBarIn': {
@@ -937,7 +912,7 @@ export default function ConfigurationPage() {
   return (
     <Box>
       <Box
-        mb={3}
+        mb={2}
         display="flex"
         alignItems={{ xs: 'flex-start', sm: 'center' }}
         justifyContent="space-between"
@@ -945,11 +920,11 @@ export default function ConfigurationPage() {
         flexWrap="wrap"
       >
         <Box minWidth={0}>
-          <Typography variant="h4" gutterBottom fontWeight={600}>
-            系统配置
+          <Typography variant="h5" gutterBottom fontWeight={700}>
+            {isSecurity ? '安全性设置' : '基本配置'}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            管理设备连接和其他系统参数
+            {isSecurity ? '管理账户安全及密码强度策略' : '管理设备连接和其他系统参数'}
           </Typography>
         </Box>
         {renderHealthBadge()}
@@ -970,16 +945,12 @@ export default function ConfigurationPage() {
         </Snackbar>
       )}
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto">
-          <Tab label="基本配置" />
-          <Tab label="安全性" />
-          <Tab label="预留2" />
-        </Tabs>
-      </Box>
-
-      <TabPanel value={tabValue} index={0}>
-        <Box display="flex" flexDirection="column" gap={3}>
+      {isSecurity ? (
+        <Box sx={{ pt: 2 }}>
+          {renderSecurityPanel()}
+        </Box>
+      ) : (
+        <Box display="flex" flexDirection="column" gap={3} sx={{ pt: 2 }}>
           <Card>
             <CardHeader
               avatar={<SimCard color="primary" />}
@@ -1135,15 +1106,7 @@ export default function ConfigurationPage() {
             </Grid>
           </Grid>
         </Box>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={1}>
-        {renderSecurityPanel()}
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={2}>
-        <ReservedPanel title="预留2" />
-      </TabPanel>
+      )}
 
       <Dialog open={!!pendingMode} onClose={() => !modeSwitching && setPendingMode(null)} maxWidth="sm" fullWidth>
         <DialogTitle>确认切换工作模式</DialogTitle>

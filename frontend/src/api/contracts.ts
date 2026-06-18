@@ -142,6 +142,23 @@ export interface SimInfo {
   mnc: string
   phone_number_is_manual?: boolean
   sms_center_is_manual?: boolean
+  sim_path: string
+  modem_path: string
+  sim_type: string
+  esim_status: string
+  active: boolean
+  operator_name: string
+  registered_operator_name: string
+  registered_operator_code: string
+  lock_status: string
+  pin1_retries?: number
+  puk1_retries?: number
+  pin2_retries?: number
+  puk2_retries?: number
+  carrier_config: string
+  carrier_config_revision: string
+  sms_used?: number
+  sms_total?: number
 }
 
 export interface UpdateSimCacheRequest {

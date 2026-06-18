@@ -252,8 +252,7 @@ export default function PhonePage() {
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={1} mb={2}>
-        <PhoneIcon color="primary" />
-        <Typography variant="h5" fontWeight={600}>电话管理</Typography>
+        <Typography variant="h5" fontWeight={700}>电话管理</Typography>
       </Box>
 
       <Snackbar open={!!error} autoHideDuration={4000} resumeHideDuration={3000} onClose={() => setError(null)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>

@@ -28,4 +28,6 @@ userdata/home/root/www/
 
 # 临时目录
 temp/
+.tmp
 .device-dump/
+docs/

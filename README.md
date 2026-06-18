@@ -75,7 +75,7 @@ SimAdmin 是一套面向 Debian 蜂窝 CPE、随身 WiFi、软路由类设备的
 当前项目由 Rust 后端和 React 前端组成：
 
 - 后端：Rust + Axum + zbus，主要通过 ModemManager D-Bus 接口管理 modem，并在部分场景使用 `mmcli`、`qmicli` 或 AT 直连兜底。
-- 前端：React + Vite + Material UI，提供仪表盘、设备信息、蜂窝网络、设备网络、短信、通知配置和 OTA 更新页面。
+- 前端：React + Vite + Material UI，提供仪表盘、SIM 卡管理、蜂窝网络、设备网络、短信管理、通知中心、自动化中心和 OTA 更新页面。
 - 部署形态：后端二进制同进程托管前端 SPA，默认安装到 `/opt/simadmin`，通过 systemd 运行。
 
 健康检查整体按支持 ModemManager 的 Linux 蜂窝设备组织，不同 modem 固件、内核、ModemManager 版本暴露的能力不同，具体功能以实际设备为准。
@@ -370,13 +370,13 @@ curl -fsSL https://raw.githubusercontent.com/3899/SimAdmin/main/uninstall.sh \
 
 ### eSIM 管理
 
-本项目中的 eSIM 指写入了 Profiles 的实体 eUICC SIM 卡，插入设备 SIM 卡槽后仍按普通 SIM 使用。SimAdmin 的“eSIM 模式”只控制 eSIM 管理页面和接口是否开放，不切换设备板载硬件。
+本项目中的 eSIM 指写入了 Profiles 的实体 eUICC SIM 卡，插入设备 SIM 卡槽后仍按普通 SIM 使用。SimAdmin 的“eSIM 模式”只控制 eSIM 管理和接口是否开放，不切换设备板载硬件。
 
-普通 SIM 模式下，侧边栏隐藏 eSIM 管理入口，`/api/esim/*` 返回 `403`，前端不会下载 eSIM 页面 chunk，后端也不会主动调用 `lpac`。切换到 eSIM 模式后，只有打开 eSIM 管理页面或执行 Profile 操作时才会按需调用 `lpac chip info`、`lpac profile list`、`lpac profile enable`、`lpac profile nickname` 和 `lpac profile delete`。
+普通 SIM 模式下，“SIM 卡管理”页面将隐藏“eSIM 管理” Tab，`/api/esim/*` 返回 `403`，前端不会下载 eSIM 相关页面 chunk，后端也不会主动调用 `lpac`。切换到 eSIM 模式后，只有切入“eSIM 管理” Tab 或执行 Profile 操作时才会按需调用 `lpac chip info`、`lpac profile list` , `lpac profile enable`、`lpac profile nickname` 和 `lpac profile delete`。
 
 OTA 包不内置固定架构的 `lpac`。`install_latest.sh` 会在目标设备上根据 `uname -m` 和 glibc 版本优先选择兼容资产，已安装最新版本时跳过，否则安装到 `/opt/simadmin/lpac/lpac`；兼容资产按 SimAdmin 的 `lpac` release manifest 比对版本，官方资产按 `estkme-group/lpac` latest release 比对版本。后端优先使用该私有路径，找不到时再回退到 PATH 中的 `lpac`。如需跳过自动安装，可设置 `SIMADMIN_INSTALL_LPAC=0`；如需固定版本或使用镜像，可设置 `LPAC_TARGET_VERSION`、`LPAC_ASSET_URL`、`LPAC_ASSET_NAME`、`LPAC_RELEASE_BASE_URL` 或 `LPAC_COMPAT_RELEASE_BASE_URL`。仅手动上传 OTA 包不会自动安装或更新 `lpac`，首次部署建议先执行安装脚本一次。
 
-如果设备已经通过 OTA 更新到支持 eSIM 的版本，但还没有安装 `lpac`，eSIM 管理页面会显示状态提示并提供“安装/修复 lpac”入口。修复过程只在 eSIM 模式下由用户手动触发，会根据设备 `uname -m` 和 glibc 版本优先下载兼容资产，失败后再尝试官方资产，并支持选择 GitHub 代理前缀；页面内修复由后端内置 ZIP 解压完成。
+如果设备已经通过 OTA 更新到支持 eSIM 的版本，但还没有安装 `lpac`，eSIM 管理 Tab 会显示状态提示并提供“安装/修复 lpac”入口。修复过程只在 eSIM 模式下由用户手动触发，会根据设备 `uname -m` 和 glibc 版本优先下载兼容资产，失败后再尝试官方资产，并支持选择 GitHub 代理前缀；页面内修复由后端内置 ZIP 解压完成。
 
 ### systemd 服务
 
@@ -401,15 +401,15 @@ journalctl -u simadmin -f
 | 页面 | 路由 | 说明 |
 |------|------|------|
 | 登录认证 | `/login` | 首次设置管理员密码、登录后台 |
-| 仪表盘 | `/` | 在线状态、运营商、信号、网络延迟、数据/漫游/飞行模式快捷开关、系统资源、温度、流量 |
-| 设备信息 | `/device` | IMEI、厂商、型号、固件、SIM、系统信息 |
-| eSIM 管理 | `/esim` | eSIM 模式下显示，管理插入设备的实体 eUICC SIM 卡 Profiles |
+| 仪表盘 | `/` | 包含在线状态、运营商、信号、网络延迟、数据/漫游/飞行模式快捷开关、系统资源、温度、流量，以及设备信息 |
+| SIM 卡管理 | `/sim` | 全面展示卡状态、标识信息、解锁次数及存储路径，支持号码与短信中心行内修改；在 eSIM 模式下集成管理与写卡功能 |
 | 蜂窝网络 | `/network` | 网络注册、服务小区和邻区、运营商扫描、APN、射频模式、频段锁定、小区锁定状态 |
 | 设备网络 | `/device-network` | WLAN 客户端联网、无线网络扫描和连接、DDNS 动态解析配置和同步日志 |
 | 短信管理 | `/sms` | 接收短信、发送短信、短信列表、会话、统计、删除对话、删除短信 |
 | 通知中心 | `/notifications` | 转发日志、转发规则、转发通道、多通道测试发送 |
 | 自动化中心 | `/automation` | 管理自动化任务，以及检索、筛选和清理任务执行日志 |
-| 系统配置 | `/config` | 设备操作、数据连接、漫游、飞行模式、基带重启、服务重启、系统重启等 |
+| 系统配置 | `/config` | 基本系统配置，包含设备运行模式设置、数据连接、漫游、飞行模式等 |
+| 安全性设置 | `/config/security` | 管理员密码修改、密码策略、登录保护及会话超时等安全配置 |
 | OTA 更新 | `/ota` | 上传 OTA 包、在线获取 Release、验证、应用或取消更新 |
 
 ### 后端能力
@@ -435,6 +435,20 @@ journalctl -u simadmin -f
 - OTA 上传、在线下载、校验、替换二进制和前端资源。
 
 ## 🚀 版本更新记录
+
+### 📌 v1.1.3
+
+#### 🏗️ UI 重构
+
+- 侧边栏重新布局，高频功能置顶显示，与系统配置项明确分隔。
+- 新增统一的 SIM 卡管理页面，整合 SIM 卡基本信息和 eSIM 管理功能，优化界面布局。
+- 取消独立的设备信息页面，相关内容合并至仪表盘。
+- 拆分系统配置为多个独立页面，新增单独的安全性设置入口，页面层级更清晰。
+
+#### 💫 体验优化
+
+- 优化 eSIM Profile 详情页布局与交互细节，提升操作便利性与界面纯净度。
+- 优化全局 UI 视觉样式，移除冗余元素，调整页面间距与文字样式，界面更清爽。
 
 ### 📌 v1.1.2
 

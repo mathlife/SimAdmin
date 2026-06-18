@@ -1799,6 +1799,28 @@ async fn active_protocol_smsc_fallback(conn: &Connection, modem_path: &str) -> S
     .unwrap_or_default()
 }
 
+fn parse_sms_storage_info(at_output: &str) -> Option<(u32, u32)> {
+    if let Some(pos) = at_output.find("+CPMS:") {
+        let line = &at_output[pos + 6..];
+        let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+        for chunk in parts.chunks(3) {
+            if chunk.len() >= 3 {
+                let mem = chunk[0].trim_matches('"').trim_matches('\'');
+                if mem == "SM" {
+                    let used_clean: String = chunk[1].trim_matches('"').trim_matches('\'').chars().take_while(|c| c.is_ascii_digit()).collect();
+                    let total_clean: String = chunk[2].trim_matches('"').trim_matches('\'').chars().take_while(|c| c.is_ascii_digit()).collect();
+                    let used = used_clean.parse::<u32>().ok();
+                    let total = total_clean.parse::<u32>().ok();
+                    if let (Some(u), Some(t)) = (used, total) {
+                        return Some((u, t));
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 pub async fn get_sim_info_data_with_cache(
     conn: &Connection,
     db: Option<&Database>,
@@ -1931,6 +1953,59 @@ pub async fn get_sim_info_data_with_cache(
         }
     }
 
+    // --- 新增诊断属性提取 ---
+    let sim_type_u = sim_props.get("SimType").map(extract_u32).unwrap_or(0);
+    let sim_type = match sim_type_u {
+        1 => "physical".to_string(),
+        2 => "esim".to_string(),
+        _ => "unknown".to_string(),
+    };
+
+    let esim_status_u = sim_props.get("EsimStatus").map(extract_u32).unwrap_or(0);
+    let esim_status = match esim_status_u {
+        1 => "none".to_string(),
+        2 => "no-profiles".to_string(),
+        3 => "with-profiles".to_string(),
+        _ => "unknown".to_string(),
+    };
+
+    let active = sim_props.get("Active").map(extract_bool).unwrap_or(false);
+    let operator_name = sim_props.get("OperatorName").map(extract_string).unwrap_or_default();
+
+    let registered_operator_name = gpp_props.get("OperatorName").map(extract_string).unwrap_or_default();
+    let registered_operator_code = gpp_props.get("OperatorCode").map(extract_string).unwrap_or_default();
+
+    let lock_status_u = modem_props.get("UnlockRequired").map(extract_u32).unwrap_or(0);
+    let lock_status = match lock_status_u {
+        1 => "none".to_string(),
+        2 => "sim-pin".to_string(),
+        3 => "sim-pin2".to_string(),
+        4 => "sim-puk".to_string(),
+        5 => "sim-puk2".to_string(),
+        _ => "unknown".to_string(),
+    };
+
+    let unlock_retries = modem_props
+        .get("UnlockRetries")
+        .and_then(|val| HashMap::<u32, u32>::try_from(val.clone()).ok())
+        .unwrap_or_default();
+    let pin1_retries = unlock_retries.get(&2).cloned();
+    let pin2_retries = unlock_retries.get(&3).cloned();
+    let puk1_retries = unlock_retries.get(&4).cloned();
+    let puk2_retries = unlock_retries.get(&5).cloned();
+
+    let carrier_config = modem_props.get("CarrierConfiguration").map(extract_string).unwrap_or_default();
+    let carrier_config_revision = modem_props.get("CarrierConfigurationRevision").map(extract_string).unwrap_or_default();
+
+    let mut sms_used = None;
+    let mut sms_total = None;
+    if let Ok(cpms_output) = send_at_via_modem_command(conn, &modem_path, "AT+CPMS?").await {
+        if let Some((used, total)) = parse_sms_storage_info(&cpms_output) {
+            sms_used = Some(used);
+            sms_total = Some(total);
+        }
+    }
+
     Ok(SimInfoResponse {
         present: true,
         iccid,
@@ -1941,6 +2016,23 @@ pub async fn get_sim_info_data_with_cache(
         mnc,
         phone_number_is_manual,
         sms_center_is_manual,
+        sim_path,
+        modem_path,
+        sim_type,
+        esim_status,
+        active,
+        operator_name,
+        registered_operator_name,
+        registered_operator_code,
+        lock_status,
+        pin1_retries,
+        puk1_retries,
+        pin2_retries,
+        puk2_retries,
+        carrier_config,
+        carrier_config_revision,
+        sms_used,
+        sms_total,
     })
 }
 
@@ -2497,6 +2589,18 @@ LTE Timing Advance: 'unavailable'"#;
         let output = "response: '+CSCA: \"+10000\",145'";
 
         assert_eq!(parse_smsc_from_at_output(output), "+10000");
+    }
+
+    #[test]
+    fn parses_sms_storage_info_correctly() {
+        let output_1 = "+CPMS: \"SM\",2,30,\"ME\",5,50,\"SM\",2,30";
+        assert_eq!(parse_sms_storage_info(output_1), Some((2, 30)));
+
+        let output_2 = "+CPMS: \"ME\",5,50,\"SM\",10,30\n\rOK";
+        assert_eq!(parse_sms_storage_info(output_2), Some((10, 30)));
+
+        let output_invalid = "+CPMS: \"ME\",5,50";
+        assert_eq!(parse_sms_storage_info(output_invalid), None);
     }
 
     #[test]

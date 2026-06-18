@@ -8,7 +8,6 @@ import {
   Tabs,
   Typography,
 } from '@mui/material'
-import { NotificationsActive } from '@mui/icons-material'
 import { api } from '../api/current'
 import { useRefreshInterval } from '../contexts/RefreshContext'
 import type {
@@ -369,10 +368,7 @@ export default function NotificationCenterPage() {
   return (
     <Box>
       <Box display="flex" alignItems="center" gap={1} mb={2} flexWrap="wrap">
-        <Box display="flex" alignItems="center" gap={1}>
-          <NotificationsActive color="primary" />
-          <Typography variant="h5" fontWeight={700}>通知中心</Typography>
-        </Box>
+        <Typography variant="h5" fontWeight={700}>通知中心</Typography>
         <NotificationQueueIndicator
           items={notificationQueueItems}
           open={queueOpen}

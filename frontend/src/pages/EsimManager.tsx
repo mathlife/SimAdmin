@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useRef } from 'react'
+import { useEffect, useMemo, useState, useRef, useCallback } from 'react'
 import {
   Alert,
   Avatar,
@@ -31,6 +31,7 @@ import {
   CheckCircle,
   DeleteOutline,
   Dns,
+  DriveFileRenameOutline,
   Edit,
   Fingerprint,
   Memory,
@@ -581,6 +582,28 @@ export default function EsimManagerPage() {
   const [totalMemoryInput, setTotalMemoryInput] = useState('')
   const [savingTotalMemory, setSavingTotalMemory] = useState(false)
 
+  const euiccCardRef = useRef<HTMLDivElement | null>(null)
+  const [gridHeight, setGridHeight] = useState<string | number>('calc(100vh - 350px)')
+
+  const updateHeight = useCallback(() => {
+    const cardEl = euiccCardRef.current
+    if (cardEl) {
+      const rect = cardEl.getBoundingClientRect()
+      const availableHeight = window.innerHeight - rect.bottom - 48
+      setGridHeight(Math.max(450, availableHeight))
+    }
+  }, [])
+
+  useEffect(() => {
+    updateHeight()
+    const timer = setTimeout(updateHeight, 100)
+    window.addEventListener('resize', updateHeight)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener('resize', updateHeight)
+    }
+  }, [updateHeight, lpacStatus])
+
   const handleOpenTotalMemoryDialog = () => {
     setTotalMemoryInput(euicc?.memory_total_kb ? String(Math.round(euicc.memory_total_kb)) : '')
     setTotalMemoryDialogOpen(true)
@@ -1018,24 +1041,6 @@ export default function EsimManagerPage() {
 
   return (
     <Box>
-      <Box mb={3} display="flex" alignItems="flex-start" justifyContent="space-between" gap={2}>
-        <Box>
-          <Typography variant="h4" gutterBottom fontWeight={600}>
-            eSIM 管理
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            查看 eUICC 芯片信息并管理本机 Profiles
-          </Typography>
-        </Box>
-        <Button
-          variant="outlined"
-          startIcon={dataLoading || refreshing ? <CircularProgress size={16} /> : <Refresh />}
-          disabled={dataLoading || refreshing}
-          onClick={() => void loadData(true)}
-        >
-          刷新
-        </Button>
-      </Box>
 
       <ErrorSnackbar error={error} onClose={() => setError(null)} />
       <Snackbar
@@ -1107,7 +1112,7 @@ export default function EsimManagerPage() {
 
         {showManagerContent && (
           <>
-            <Card>
+            <Card ref={euiccCardRef}>
               <Toolbar
                 sx={{
                   minHeight: 76,
@@ -1134,7 +1139,19 @@ export default function EsimManagerPage() {
                   <Memory fontSize="small" />
                 </Box>
                 <Box minWidth={0} flex="1 1 520px">
-                  <Typography variant="subtitle1" fontWeight={700} mb={0.5}>eUICC 芯片</Typography>
+                  <Box display="flex" alignItems="center" gap={0.5} mb={0.5}>
+                    <Typography variant="subtitle1" fontWeight={700}>eUICC 芯片</Typography>
+                    <Tooltip title="刷新">
+                      <IconButton
+                        size="small"
+                        disabled={dataLoading || refreshing}
+                        onClick={() => void loadData(true)}
+                        sx={{ p: 0.25 }}
+                      >
+                        {dataLoading || refreshing ? <CircularProgress size={16} /> : <Refresh sx={{ fontSize: 18 }} />}
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
                   <Box
                     minWidth={0}
                     sx={{
@@ -1149,13 +1166,32 @@ export default function EsimManagerPage() {
                   </Box>
                 </Box>
                 {hasMemoryInfo && (
-                  <Box sx={{ width: { xs: '100%', md: 300 }, ml: { md: 'auto' } }}>
+                  <Box
+                    sx={{
+                      width: { xs: '100%', md: 300 },
+                      ml: { md: 'auto' },
+                      '& .edit-capacity-btn': {
+                        opacity: 0,
+                        visibility: 'hidden',
+                        transition: 'opacity 0.2s ease, visibility 0.2s ease',
+                      },
+                      '&:hover .edit-capacity-btn': {
+                        opacity: 1,
+                        visibility: 'visible',
+                      },
+                    }}
+                  >
                     <Box display="flex" alignItems="center" justifyContent="space-between" gap={1} mb={0.75}>
                       <Typography variant="caption" color="text.secondary" display="inline-flex" alignItems="center" gap={0.5}>
                         eUICC 容量
                         {euicc?.memory_total_customizable && (
                           <Tooltip title="自定义总容量">
-                            <IconButton size="small" onClick={handleOpenTotalMemoryDialog} sx={{ p: 0.25 }}>
+                            <IconButton
+                              className="edit-capacity-btn"
+                              size="small"
+                              onClick={handleOpenTotalMemoryDialog}
+                              sx={{ p: 0.25 }}
+                            >
                               <Edit sx={{ fontSize: 13 }} />
                             </IconButton>
                           </Tooltip>
@@ -1193,7 +1229,7 @@ export default function EsimManagerPage() {
                 gridTemplateColumns: { xs: '1fr', md: '340px minmax(0, 1fr)' },
                 gap: 2,
                 alignItems: 'stretch',
-                height: { md: 'calc(100vh - 300px)' },
+                height: { md: gridHeight },
                 minHeight: { md: 520 },
               }}
             >
@@ -1601,7 +1637,7 @@ export default function EsimManagerPage() {
                         <Tooltip title="重命名">
                           <span>
                             <IconButton onClick={openRename} disabled={actionLoading}>
-                              <Edit />
+                              <DriveFileRenameOutline />
                             </IconButton>
                           </span>
                         </Tooltip>
@@ -1635,22 +1671,22 @@ export default function EsimManagerPage() {
                         <Typography fontWeight={700}>基础与网络属性</Typography>
                       </Box>
                       <Grid container spacing={2} mb={3}>
-                        <Grid size={{ xs: 12, md: 6 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <InfoCell label="ICCID" value={selectedProfile.iccid} mono />
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                          <InfoCell label="IMSI" value={selectedProfile.imsi} mono />
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <InfoCell label="本机号码 (MSISDN)" value={selectedProfile.msisdn} mono />
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <InfoCell label="短信中心号码 (SMSC)" value={selectedProfile.smsc} mono emptyText="未读取到" />
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <InfoCell label="MCC / MNC" value={[selectedProfile.mcc, selectedProfile.mnc].filter(Boolean).join(' / ')} mono />
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <InfoCell label="IMSI" value={selectedProfile.imsi} mono />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <InfoCell label="Profile Class" value={selectedProfile.class} />
                         </Grid>
                       </Grid>
@@ -1660,24 +1696,20 @@ export default function EsimManagerPage() {
                         <Typography fontWeight={700}>底层供应与策略</Typography>
                       </Box>
                       <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, md: 6 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <InfoCell label="SM-DP+ 服务器" value={selectedSmdp} mono />
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <InfoCell label="标识码 (Matching ID)" value={selectedMatchingId} mono />
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                           <InfoCell label="ISDP-AID" value={selectedProfile.isdp_aid} mono />
                         </Grid>
-                        <Grid size={{ xs: 12, md: 6 }}>
-                          <Box display="flex" gap={2} sx={{ height: '100%' }}>
-                            <Box flex={1}>
-                              <InfoCell label="允许删除" value={selectedProfile.delete_allowed === undefined ? '未知' : selectedProfile.delete_allowed ? '是' : '否'} />
-                            </Box>
-                            <Box flex={1}>
-                              <InfoCell label="允许禁用" value={selectedProfile.disable_allowed === undefined ? '未知' : selectedProfile.disable_allowed ? '是' : '否'} />
-                            </Box>
-                          </Box>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <InfoCell label="允许删除" value={selectedProfile.delete_allowed === undefined ? '未知' : selectedProfile.delete_allowed ? '是' : '否'} />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+                          <InfoCell label="允许禁用" value={selectedProfile.disable_allowed === undefined ? '未知' : selectedProfile.disable_allowed ? '是' : '否'} />
                         </Grid>
                       </Grid>
                     </Box>

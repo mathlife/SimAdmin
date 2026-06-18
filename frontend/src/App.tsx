@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import { QueryClientProvider } from '@tanstack/react-query'
 import { Box, CircularProgress } from '@mui/material'
 import { ThemeProvider } from './contexts/ThemeContext'
-import { WorkModeProvider, useWorkMode } from './contexts/WorkModeContext'
+import { WorkModeProvider } from './contexts/WorkModeContext'
 import { queryClient } from './lib/queryClient'
 import MainLayout from './components/Layout/MainLayout'
 import { api, type AuthStatusResponse } from './api/current'
@@ -12,7 +12,7 @@ const SECURITY_SETTINGS_UPDATED_EVENT = 'simadmin-security-settings-updated'
 
 // 路由级别代码分割 - 按需加载页面组件
 const Dashboard = lazy(() => import('./pages/Dashboard'))
-const DeviceInfo = lazy(() => import('./pages/DeviceInfo'))
+const SimCard = lazy(() => import('./pages/SimCard'))
 const Network = lazy(() => import('./pages/Network'))
 const DeviceNetwork = lazy(() => import('./pages/DeviceNetwork'))
 const SMS = lazy(() => import('./pages/SMS'))
@@ -20,7 +20,6 @@ const NotificationCenter = lazy(() => import('./pages/NotificationCenter'))
 const Phone = lazy(() => import('./pages/Phone'))
 const Configuration = lazy(() => import('./pages/Configuration'))
 const OtaUpdate = lazy(() => import('./pages/OtaUpdate'))
-const EsimManager = lazy(() => import('./pages/EsimManager'))
 const Login = lazy(() => import('./pages/Login'))
 const AutomationCenter = lazy(() => import('./pages/AutomationCenter'))
 
@@ -30,17 +29,6 @@ function PageLoading() {
     <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
       <CircularProgress size={32} />
     </Box>
-  )
-}
-
-function EsimRoute() {
-  const { mode, loading } = useWorkMode()
-  if (loading) return <PageLoading />
-  if (mode !== 'esim') return <Navigate to="/config" replace />
-  return (
-    <Suspense fallback={<PageLoading />}>
-      <EsimManager />
-    </Suspense>
   )
 }
 
@@ -135,8 +123,8 @@ function App() {
             <Route path="/login" element={<Suspense fallback={<PageLoading />}><Login /></Suspense>} />
             <Route path="/" element={<ProtectedShell />}>
               <Route index element={<Suspense fallback={<PageLoading />}><Dashboard /></Suspense>} />
-              <Route path="device" element={<Suspense fallback={<PageLoading />}><DeviceInfo /></Suspense>} />
-              <Route path="esim" element={<EsimRoute />} />
+              <Route path="sim" element={<Suspense fallback={<PageLoading />}><SimCard /></Suspense>} />
+              <Route path="esim" element={<Navigate to="/sim?tab=esim" replace />} />
               <Route path="network" element={<Suspense fallback={<PageLoading />}><Network /></Suspense>} />
               <Route path="device-network" element={<Suspense fallback={<PageLoading />}><DeviceNetwork /></Suspense>} />
               {/* 旧路由重定向到网络状态页面 */}
@@ -147,6 +135,7 @@ function App() {
               <Route path="automation" element={<Suspense fallback={<PageLoading />}><AutomationCenter /></Suspense>} />
               <Route path="phone" element={<Suspense fallback={<PageLoading />}><Phone /></Suspense>} />
               <Route path="config" element={<Suspense fallback={<PageLoading />}><Configuration /></Suspense>} />
+              <Route path="config/security" element={<Suspense fallback={<PageLoading />}><Configuration /></Suspense>} />
               <Route path="ota" element={<Suspense fallback={<PageLoading />}><OtaUpdate /></Suspense>} />
             </Route>
           </Routes>
