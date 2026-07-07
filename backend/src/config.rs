@@ -613,7 +613,7 @@ pub struct VersionUpdateNotificationConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub struct SecurityConfig {
-    #[serde(default = "default_true")]
+    #[serde(default)]
     pub password_protection_enabled: bool,
     #[serde(default = "default_password_min_length")]
     pub password_min_length: u8,
@@ -1346,7 +1346,7 @@ impl Default for VersionUpdateNotificationConfig {
 impl Default for SecurityConfig {
     fn default() -> Self {
         Self {
-            password_protection_enabled: true,
+            password_protection_enabled: false,
             password_min_length: default_password_min_length(),
             password_require_letters: true,
             password_require_digits: true,
